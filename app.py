@@ -12,7 +12,7 @@ uploaded_file = st.file_uploader("Upload an Excel file (.xlsx)", type="xlsx")
 if uploaded_file:
     df = read_excel(uploaded_file)
     st.success("✅ File loaded successfully!")
-    st.dataframe(df.head(10))
+    st.dataframe(df.head(5))
 
     question = st.text_input("Ask a question about your data:")
 
