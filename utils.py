@@ -9,7 +9,7 @@ import random
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-pro")
+model = genai.GenerativeModel("models/gemini-pro") 
 
 def find_header_row(sheet, min_cols=2):
     for idx, row in enumerate(sheet.values):
