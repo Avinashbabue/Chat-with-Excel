@@ -4,7 +4,6 @@ Upload an Excel file and ask questions in plain English. The app uses Gemini to 
 
 ### Features
 - Schema-free question answering
-- Automatic chart generation
 - Supports `.xlsx` files with up to 500 rows
 
 ### How to Run Locally
