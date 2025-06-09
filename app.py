@@ -1,20 +1,29 @@
+# app.py
 import streamlit as st
-import os
-import google.generativeai as genai
+import pandas as pd
+from utils import read_excel, run_pandasai
 
-# Try all three model names, one at a time
-api_key = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
+st.set_page_config(page_title="Excel Insight Assistant", layout="wide")
+st.title("📊 Chat with Excel")
 
-# Try these, one at a time and comment the rest:
-# model = genai.GenerativeModel("models/gemini-pro")
-# model = genai.GenerativeModel("gemini-1.0-pro")
-model = genai.GenerativeModel("models/gemini-1.5-pro")
+# File uploader
+uploaded_file = st.file_uploader("Upload your Excel (.xlsx) file", type=["xlsx"])
 
-try:
-    response = model.generate_content("Say hello from Gemini!")
-    print("Gemini API test response:", response.text)
-    st.success("Gemini API test succeeded: " + response.text)
-except Exception as e:
-    st.error(f"Gemini API test failed: {e}")
-    st.stop()
+if uploaded_file:
+    try:
+        df = read_excel(uploaded_file)
+        st.subheader("🔍 Preview of Your Data")
+        st.dataframe(df.head(10), use_container_width=True)
+
+        # Input question
+        question = st.text_input("Ask something about this data...")
+        if question:
+            with st.spinner("Thinking..."):
+                response, chart = run_pandasai(df, question)
+                st.subheader("🧠 Answer")
+                st.markdown(response)
+
+                if chart:
+                    st.plotly_chart(chart, use_container_width=True)
+    except Exception as e:
+        st.error(f"❌ Error: {str(e)}")
