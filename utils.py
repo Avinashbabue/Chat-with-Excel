@@ -1,24 +1,31 @@
-# utils.py
-import pandas as pd
+import os
 import re
-from pandasai import PandasAI
+import pandas as pd
+from pandasai import SmartDataframe
 from pandasai.llm.openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables (TOGETHER_API_KEY)
+load_dotenv()
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+
+# Specify Together's OpenAI-compatible endpoint, if needed (otherwise OpenAI default)
+# For many OpenAI-compatible providers, you can override the API base URL like this:
+# os.environ["OPENAI_API_BASE"] = "https://api.together.xyz/v1"
 
 def read_excel(uploaded_file):
     """
-    Reads an Excel file and automatically detects the header row.
-    Cleans empty rows/columns and normalizes column names.
+    Reads an Excel file, auto-detects the header row,
+    cleans empty rows/columns, and normalizes column names.
     """
     raw_df = pd.read_excel(uploaded_file, sheet_name=0, header=None)
 
     # Detect the header row by looking for a row with mostly strings
     header_row = None
     for i, row in raw_df.iterrows():
-        # Count non-null values
         non_null_count = row.count()
-        # Count string type cells in the row
         string_count = row.apply(lambda x: isinstance(x, str)).sum()
-        # If at least 2 cells are strings and at least half the row is non-null, consider it header
+        # At least 2 strings and half non-null values
         if string_count >= 2 and non_null_count >= len(row) / 2:
             header_row = i
             break
@@ -33,8 +40,7 @@ def read_excel(uploaded_file):
     df = df.dropna(how='all')
     df = df.dropna(axis=1, how='all')
 
-    # Normalize column names:
-    # strip whitespace, lowercase, replace spaces with underscore, remove special characters
+    # Normalize column names: strip, lower, underscore, remove special chars
     def normalize_col(col):
         col = str(col).strip().lower()
         col = re.sub(r"\s+", "_", col)
@@ -42,23 +48,19 @@ def read_excel(uploaded_file):
         return col
 
     df.columns = [normalize_col(col) for col in df.columns]
-
     return df
 
-
-def run_pandasai(df, question, openai_api_key=None):
+def run_pandasai(df, question, together_api_key=TOGETHER_API_KEY):
     """
-    Runs PandasAI to answer the question on the dataframe.
-    Returns (text_response, plotly_figure_or_None).
+    Run PandasAI using Together API's GPT-3.5-turbo model.
+    Returns: (text_response, plotly_figure_or_None)
     """
-    # Initialize OpenAI LLM for PandasAI
-    llm = OpenAI(api_token=openai_api_key)
-    pandas_ai = PandasAI(llm, conversational=False)
+    # If Together API is OpenAI-compatible, this works out-of-the-box
+    llm = OpenAI(api_token=together_api_key, model="gpt-3.5-turbo")
+    sdf = SmartDataframe(df, config={"llm": llm, "verbose": False})
 
-    # Run the question on the dataframe
-    result = pandas_ai.run(df, prompt=question)
+    # Get response (may be text or a plot, depending on the question)
+    result = sdf.chat(question)
 
-    # PandasAI may return text or figures, handle both
-    # For simplicity, here we only return the result text and None for chart
-    # (You can extend this to detect and return plotly charts if available)
+    # If you want to handle charts, extend here (for now just text)
     return str(result), None
